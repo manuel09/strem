@@ -79,16 +79,24 @@ async function getTmdbDetails(tmdbId, type) {
 }
 
 // ====================================================================
-// 1. CATALOG HANDLER
+// 1. CATALOG HANDLER (RIPRISTINATO E POTENZIATO PER DEBUG)
 // ====================================================================
 
 builder.defineCatalogHandler(async (args) => {
     const apiType = (args.type === 'series') ? 'tv' : 'movie'; 
     const vixsrcListUrl = `${VIXSRC_BASE_URL}/api/list/${apiType}?lang=it`;
 
+    console.log(`[CATALOG] Inizio richiesta per ${args.type}. URL VixSrc: ${vixsrcListUrl}`);
+
     try {
         const listResponse = await fetch(vixsrcListUrl);
-        if (!listResponse.ok) return { metas: [] };
+        
+        if (!listResponse.ok) {
+            console.error(`[CATALOG ERROR] Chiamata a VixSrc fallita! Status: ${listResponse.status} ${listResponse.statusText}`);
+            // Restituisce un errore se la prima chiamata fallisce
+            return { metas: [] };
+        }
+        
         const listData = await listResponse.json();
         
         const tmdbIds = listData
@@ -96,15 +104,20 @@ builder.defineCatalogHandler(async (args) => {
             .map(item => item.tmdb_id)
             .slice(0, CATALOG_LIMIT); 
 
+        console.log(`[CATALOG] Trovati ${tmdbIds.length} ID TMDB da VixSrc. Avvio fetch TMDB...`);
+
+        // Questa è la parte che richiede la chiave TMDB
         const detailPromises = tmdbIds.map(id => getTmdbDetails(id, args.type));
         
         const metas = (await Promise.all(detailPromises))
             .filter(meta => meta !== null); 
+
+        console.log(`[CATALOG] Elaborazione terminata. Restituiti ${metas.length} metadati (su ${tmdbIds.length} originali).`);
         
         return { metas: metas };
         
     } catch (error) {
-        console.error('[CATALOG] Errore Grave:', error);
+        console.error('[CATALOG ERRORE GRAVE] Eccezione non gestita durante il fetch o il parsing:', error.message);
         return { metas: [] };
     }
 });

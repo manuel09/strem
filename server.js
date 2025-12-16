@@ -79,7 +79,7 @@ async function getTmdbDetails(tmdbId, type) {
 }
 
 // ====================================================================
-// 1. CATALOG HANDLER (RIPRISTINATO E POTENZIATO PER DEBUG)
+// 1. CATALOG HANDLER (FIX 403 FORBIDDEN)
 // ====================================================================
 
 builder.defineCatalogHandler(async (args) => {
@@ -89,11 +89,17 @@ builder.defineCatalogHandler(async (args) => {
     console.log(`[CATALOG] Inizio richiesta per ${args.type}. URL VixSrc: ${vixsrcListUrl}`);
 
     try {
-        const listResponse = await fetch(vixsrcListUrl);
+        // AGGIUNTO IL L'HEADER User-Agent per aggirare il blocco 403
+        const fetchOptions = {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        };
+
+        const listResponse = await fetch(vixsrcListUrl, fetchOptions); // <-- USO delle opzioni
         
         if (!listResponse.ok) {
             console.error(`[CATALOG ERROR] Chiamata a VixSrc fallita! Status: ${listResponse.status} ${listResponse.statusText}`);
-            // Restituisce un errore se la prima chiamata fallisce
             return { metas: [] };
         }
         
@@ -106,18 +112,17 @@ builder.defineCatalogHandler(async (args) => {
 
         console.log(`[CATALOG] Trovati ${tmdbIds.length} ID TMDB da VixSrc. Avvio fetch TMDB...`);
 
-        // Questa è la parte che richiede la chiave TMDB
         const detailPromises = tmdbIds.map(id => getTmdbDetails(id, args.type));
         
         const metas = (await Promise.all(detailPromises))
             .filter(meta => meta !== null); 
 
-        console.log(`[CATALOG] Elaborazione terminata. Restituiti ${metas.length} metadati (su ${tmdbIds.length} originali).`);
+        console.log(`[CATALOG] Elaborazione terminata. Restituiti ${metas.length} metadati.`);
         
         return { metas: metas };
         
     } catch (error) {
-        console.error('[CATALOG ERRORE GRAVE] Eccezione non gestita durante il fetch o il parsing:', error.message);
+        console.error('[CATALOG ERRORE GRAVE] Eccezione non gestita:', error.message);
         return { metas: [] };
     }
 });

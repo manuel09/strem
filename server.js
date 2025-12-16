@@ -172,17 +172,14 @@ builder.defineStreamHandler(async (args) => {
 });
 
 // ====================================================================
-// AVVIO DEL SERVER (METODO STABILE SDK)
+// AVVIO SERVER PER RENDER.COM
 // ====================================================================
 
-const PORT = 7000;
+const { serveHTTP } = require('stremio-addon-sdk');
 
-// Utilizziamo serveHTTP per avviare il server.
-serveHTTP(builder.getInterface(), { port: PORT });
+// Render userà la variabile d'ambiente PORT. Usiamo 7000 come fallback locale.
+const PORT = process.env.PORT || 7000; 
 
-console.log('----------------------------------------------------');
-console.log('🚀 Addon VixSrc in esecuzione.');
-console.log(`Porta Locale: ${PORT}`);
-console.log(`URL MANIFEST: http://127.0.0.1:${PORT}/manifest.json`);
-console.log('Installalo in Stremio incollando l\'URL qui sopra.');
-console.log('----------------------------------------------------');
+serveHTTP(builder.get	Interface(), { port: PORT });
+
+console.log(`🚀 Addon VixSrc in ascolto su porta ${PORT}.`);
